@@ -65,7 +65,7 @@ def main(arguments: dict):
                     
                     # split name on date to extract title and build full output name
                     mp4_filename = f"{v.split(year)[0].replace('.', '')} ({year}).mp4"
-                    output_filepath = f"{out_path}/{mp4_filename}"
+                    output_filepath = f"{out_path}/Movies/{mp4_filename}"
 
                     # get video propeerties
                     props = get_video_properties(full_source_path)
@@ -118,11 +118,11 @@ def main(arguments: dict):
                                 
                                 # build full file name and output path
                                 mp4_filename = f"{series_name} - {season_and_episode} - {episode_title}.mp4"
-                                output_filepath = f"{out_path}/{series_name}/{mp4_filename}"
+                                output_filepath = f"{out_path}/TV/{series_name}/{mp4_filename}"
 
                                 # create series name dir if not exists
-                                if not os.path.isdir(f"{out_path}/{series_name}"):
-                                    os.mkdir(f"{out_path}/{series_name}")
+                                if not os.path.isdir(f"{out_path}/TV/{series_name}"):
+                                    os.mkdir(f"{out_path}/TV/{series_name}")
 
                                 # get video propeerties
                                 props = get_video_properties(full_source_path)
