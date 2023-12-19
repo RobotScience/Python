@@ -7,6 +7,7 @@ parser.add_argument("-strat", "--Strategy", choices=['LevelEach', 'LevelDistribu
 parser.add_argument("-fpw", "--FarmPerWave", choices=[1, 2], default=2)
 parser.add_argument("-mfl", "--MaxFarmLevel", choices=[0, 1, 2, 3, 4, 5], default=5)
 parser.add_argument("-mf", "--MaxFarms", choices=[1, 2, 3, 4, 5, 6, 7, 8], default=8)
+parser.add_argument("-w", "--Waves", default=41)
 args = parser.parse_args()
 
 strategy = args.Strategy
@@ -17,20 +18,21 @@ waves = 41
 
 
 def calculate_totals(dataframe, max_farms):
-    # calculate income
+    
+    # calculate total income
     total_income = 0
     for r in range(max_farms):
         r += 1
         fi = f'FARM-{str(r)}'
         total_income += dataframe.iloc[2][fi]
-    # calculate cost
+    
+    # calculate total cost
     total_cost = 0
     for r in range(max_farms):
         r += 1
         fi = f'FARM-{str(r)}'
-        total_cost += dataframe.i
-        
-        loc[1][fi]
+        total_cost += dataframe.iloc[1][fi]
+
     return {
         'TotalCost': total_cost,
         'TotalIncome': total_income
