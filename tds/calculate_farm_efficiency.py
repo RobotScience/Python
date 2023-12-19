@@ -222,5 +222,5 @@ print(table_ize(df))
 money = calculate_totals(df, mf)
 
 print(f"\nTOTAL INCOME ====> {money['TotalIncome']}")
-print(f"TOTAL COST   ====> {money['TotalCost']}\n")
-print(f"NET INCOME   ====> {money['TotalIncome'] - money['TotalCost']}")
+print(f"TOTAL COST ====> {money['TotalCost']}\n")
+print(f"NET INCOME ====> {money['TotalIncome'] - money['TotalCost']}")
