@@ -143,7 +143,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Auto encoding script for plex video files')
     parser.add_argument('-sp', '--source_path', help="Root source path to look for video files", type=str)
     parser.add_argument('-op', '--out_path', help="Root output path for destination files", type=str)
-    parser.add_argument('-ll', '--log_level', help="logging log level", type=str, default='CRITIAL')
+    parser.add_argument('-ll', '--log_level', help="logging log level", type=str, default='CRITICAL')
 
     args = parser.parse_args()
 
