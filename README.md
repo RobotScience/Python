@@ -2,7 +2,7 @@
 
 ## handbrake
 
-### auto_encode_videos.py
+1. ### auto_encode_videos.py
 
 This script uses the HandBrakeCLI to convert TV and Movie files from a source directory. HandBrakeCLI must be installed and in the path of the user executing the script.
 
