@@ -72,6 +72,7 @@ def main(arguments: dict):
         # look for files in source
         sub_folders = os.listdir(source_path)
         for f in sub_folders:
+            logger.info(f"Processing folder: {f}")
             if f == 'movies':
                 
                 # handle movie files
