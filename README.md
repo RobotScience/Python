@@ -23,5 +23,5 @@ This script uses the HandBrakeCLI to convert TV and Movie files from a source di
 
 *log_level*
 
-- The log level logger (not yet implemented)
-    
+- Instantiates loguru at the minimum level provided
+    - Options (from lowest value to highest): ['TRACE', 'DEBUG', 'INFO', 'SUCCESS', 'WARNING', 'ERROR', 'CRITICAL']

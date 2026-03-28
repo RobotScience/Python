@@ -15,8 +15,9 @@ import os
 import re
 import shutil
 import argparse
-import logging
+import sys
 from videoprops import get_video_properties
+from loguru import logger
 
 
 def encode_video(data: dict):
@@ -38,112 +39,116 @@ def encode_video(data: dict):
 
 
 def main(arguments: dict):
+    try:
+        out_path = arguments['out_path']
+        source_path = arguments['source_path']
+        logger.add(sys.stderr, level=arguments['log_level'].upper())
 
-    out_path = arguments['out_path']
-    source_path = arguments['source_path']
-    logging.basicConfig(level=f"{arguments['log_level']}")
+        # look for files in source
+        sub_folders = os.listdir(source_path)
+        for f in sub_folders:
+            if f == 'movies':
+                
+                # handle movie files
+                for v in os.listdir(f"{source_path}/{f}"):
+                    if v.endswith(".mkv"):
+                        logger.info(f"Movie file found: {v}. Attempting to transcode...")
 
-    # look for files in source
-    sub_folders = os.listdir(source_path)
-    for f in sub_folders:
-        if f == 'movies':
-            
-            # handle movie files
-            for v in os.listdir(f"{source_path}/{f}"):
-                if v.endswith(".mkv"):
-                    logging.info(f"Movie file found: {v}. Attempting to transcode...")
+                        # parse name from file
+                        full_source_path = f"{source_path}/{f}/{v}"
+                        split_name = v.split('.')
 
-                    # parse name from file
-                    full_source_path = f"{source_path}/{f}/{v}"
-                    split_name = v.split('.')
-
-                    # figure out the movie year
-                    for i in split_name:
-                        if (i.isnumeric()) and (len(i) == 4):
-                            year = i
-                            logging.info(f"Date determined to be: {i}")
-                    
-                    # split name on date to extract title and build full output name
-                    mp4_filename = f"{v.split(year)[0].replace('.', '')} ({year}).mp4"
-                    output_filepath = f"{out_path}/Movies/{mp4_filename}"
-
-                    # get video propeerties
-                    props = get_video_properties(full_source_path)
-                    video_width = props['width']
-                    video_height = props['height']
-
-                    encode_video({
-                        'source': full_source_path,
-                        'destination': output_filepath,
-                        'width': video_width,
-                        'height': video_height
-                    })
-
-
-        elif f == 'tv':
-            # handle tv files
-            for folder in os.listdir(f"{source_path}/{f}"):
-
-                if 'DS_Store' not in folder:
-                    # get all tv files in the directory
-                    get_files = os.listdir(f"{source_path}/{f}/{folder}")
-
-                    if len(get_files) > 0:
-                        # sort the list
-                        get_files.sort()
-                        # determine the converted path
-                        converted_path = f"{source_path.replace('to_convert', 'converted')}/tv/{folder}"
+                        # figure out the movie year
+                        for i in split_name:
+                            if (i.isnumeric()) and (len(i) == 4):
+                                year = i
+                                logger.info(f"Date determined to be: {i}")
                         
-                        # create the converted path if it does not exist
-                        if not os.path.isdir(converted_path):
-                            os.mkdir(converted_path)
-                        
-                        for file in get_files: # handle tv files
-                            if file.endswith(".mkv"):
-                                logging.info(f"TV file found: {file}. Attempting to transcode...")
+                        # split name on date to extract title and build full output name
+                        mp4_filename = f"{v.split(year)[0].replace('.', '')} ({year}).mp4"
+                        output_filepath = f"{out_path}/Movies/{mp4_filename}"
 
-                                # parse name from file
-                                full_source_path = f"{source_path}/{f}/{folder}/{file}"
-                                split_name = file.split('.')
+                        # get video propeerties
+                        props = get_video_properties(full_source_path)
+                        video_width = props['width']
+                        video_height = props['height']
 
-                                # match to series and episode number and resolution
-                                season_and_episode = re.search(r"s\d{2}e\d{2}", file, flags=re.IGNORECASE).group()
-                                resolution = re.search(r"\d{3,4}p", file, flags=re.IGNORECASE).group()
+                        encode_video({
+                            'source': full_source_path,
+                            'destination': output_filepath,
+                            'width': video_width,
+                            'height': video_height
+                        })
 
-                                # get the series name
-                                series_name = file.split(season_and_episode)[0].replace('.', ' ').strip()
-                                
-                                # get the episode title
-                                episode_title = file.split(resolution)[0].split(season_and_episode)[-1].replace('.', ' ').strip()
-                                
-                                # build full file name and output path
-                                mp4_filename = f"{series_name} - {season_and_episode} - {episode_title}.mp4"
-                                output_filepath = f"{out_path}/TV/{series_name}/{mp4_filename}"
 
-                                # create series name dir if not exists
-                                if not os.path.isdir(f"{out_path}/TV/{series_name}"):
-                                    os.mkdir(f"{out_path}/TV/{series_name}")
+            elif f == 'tv':
+                # handle tv files
+                for folder in os.listdir(f"{source_path}/{f}"):
 
-                                # get video propeerties
-                                props = get_video_properties(full_source_path)
-                                video_width = props['width']
-                                video_height = props['height']
+                    if 'DS_Store' not in folder:
+                        # get all tv files in the directory
+                        get_files = os.listdir(f"{source_path}/{f}/{folder}")
 
-                                encode_video({
-                                    'source': full_source_path,
-                                    'destination': output_filepath,
-                                    'width': video_width,
-                                    'height': video_height
-                                })
-        else:
-            continue
+                        if len(get_files) > 0:
+                            # sort the list
+                            get_files.sort()
+                            # determine the converted path
+                            converted_path = f"{source_path.replace('to_convert', 'converted')}/tv/{folder}"
+                            
+                            # create the converted path if it does not exist
+                            if not os.path.isdir(converted_path):
+                                os.mkdir(converted_path)
+                            
+                            for file in get_files: # handle tv files
+                                if file.endswith(".mkv"):
+                                    logger.info(f"TV file found: {file}. Attempting to transcode...")
+
+                                    # parse name from file
+                                    full_source_path = f"{source_path}/{f}/{folder}/{file}"
+                                    split_name = file.split('.')
+
+                                    # match to series and episode number and resolution
+                                    season_and_episode = re.search(r"s\d{2}e\d{2}", file, flags=re.IGNORECASE).group()
+                                    resolution = re.search(r"\d{3,4}p", file, flags=re.IGNORECASE).group()
+
+                                    # get the series name
+                                    series_name = file.split(season_and_episode)[0].replace('.', ' ').strip()
+                                    
+                                    # get the episode title
+                                    episode_title = file.split(resolution)[0].split(season_and_episode)[-1].replace('.', ' ').strip()
+                                    
+                                    # build full file name and output path
+                                    mp4_filename = f"{series_name} - {season_and_episode} - {episode_title}.mp4"
+                                    output_filepath = f"{out_path}/TV/{series_name}/{mp4_filename}"
+
+                                    # create series name dir if not exists
+                                    if not os.path.isdir(f"{out_path}/TV/{series_name}"):
+                                        os.mkdir(f"{out_path}/TV/{series_name}")
+
+                                    # get video propeerties
+                                    props = get_video_properties(full_source_path)
+                                    video_width = props['width']
+                                    video_height = props['height']
+
+                                    encode_video({
+                                        'source': full_source_path,
+                                        'destination': output_filepath,
+                                        'width': video_width,
+                                        'height': video_height
+                                    })
+            else:
+                continue
+
+        return "Encoding complete!"
+    except Exception as e:
+        raise Exception(f"An error occurred during encoding: {e}")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Auto encoding script for plex video files')
     parser.add_argument('-sp', '--source_path', help="Root source path to look for video files", type=str)
     parser.add_argument('-op', '--out_path', help="Root output path for destination files", type=str)
-    parser.add_argument('-ll', '--log_level', help="logging log level", type=str, default='CRITICAL')
+    parser.add_argument('-ll', '--log_level', help="logging log level", type=str, default='DEBUG')
 
     args = parser.parse_args()
 
