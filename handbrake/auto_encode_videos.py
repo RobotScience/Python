@@ -16,6 +16,7 @@ import re
 import shutil
 import argparse
 import sys
+import subprocess
 from videoprops import get_video_properties
 from loguru import logger
 
@@ -32,7 +33,7 @@ def encode_video(data: dict):
     # $cliExe -ArgumentList "-i `"$source`" -t 1 -o `"$destination`" -f av_mp4 -w $vWidth -l $vHeight -O -e x265 --vfr -E ac3 -6 stereo -R Auto -B 48 -D 1.5 --gain 2 --verbose=0"
     full_command = f"HandBrakeCLI -i '{source}' -o '{destination}' -f av_mp4 -w {width} -l {height} -q 22.0 -O -e x265 -vfr -E ac3 -6 stereo -R 48 -B 48 -D 1.5 --gain 2 --subtitle-lang-list eng --all-subtitles --multi-pass --subtitle-default=none --subtitle-burned=none --verbose=0"
 
-    os.system(full_command)
+    subprocess.run(full_command, shell=True, check=True)
 
     # move the fild to the converted directory
     shutil.move(source, source.replace('to_convert', 'converted'))
