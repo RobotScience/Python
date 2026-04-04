@@ -17,6 +17,7 @@ import shutil
 import argparse
 import sys
 import subprocess
+import platform
 from videoprops import get_video_properties
 from loguru import logger
 
@@ -68,6 +69,10 @@ def main(arguments: dict):
         out_path = arguments['out_path']
         source_path = arguments['source_path']
         logger.add(sys.stderr, level=arguments['log_level'].upper())
+        
+        # Detect OS and log it
+        detected_os = platform.system()
+        logger.info(f"Detected OS: {detected_os}")
 
         # look for files in source
         sub_folders = os.listdir(source_path)
@@ -76,12 +81,12 @@ def main(arguments: dict):
             if f == 'movies':
                 
                 # handle movie files
-                for v in os.listdir(f"{source_path}/{f}"):
+                for v in os.listdir(os.path.join(source_path, f)):
                     if v.endswith(".mkv"):
                         logger.info(f"Movie file found: {v}. Attempting to transcode...")
 
                         # parse name from file
-                        full_source_path = f"{source_path}/{f}/{v}"
+                        full_source_path = os.path.join(source_path, f, v)
                         split_name = v.split('.')
 
                         # figure out the movie year
@@ -92,7 +97,7 @@ def main(arguments: dict):
                         
                         # split name on date to extract title and build full output name
                         mp4_filename = f"{v.split(year)[0].replace('.', '')} ({year}).mp4"
-                        output_filepath = f"{out_path}/Movies/{mp4_filename}"
+                        output_filepath = os.path.join(out_path, 'Movies', mp4_filename)
 
                         # get video propeerties
                         props = get_video_properties(full_source_path)
@@ -109,17 +114,17 @@ def main(arguments: dict):
 
             elif f == 'tv':
                 # handle tv files
-                for folder in os.listdir(f"{source_path}/{f}"):
+                for folder in os.listdir(os.path.join(source_path, f)):
 
                     if 'DS_Store' not in folder:
                         # get all tv files in the directory
-                        get_files = os.listdir(f"{source_path}/{f}/{folder}")
+                        get_files = os.listdir(os.path.join(source_path, f, folder))
 
                         if len(get_files) > 0:
                             # sort the list
                             get_files.sort()
                             # determine the converted path
-                            converted_path = f"{source_path.replace('to_convert', 'converted')}/tv/{folder}"
+                            converted_path = os.path.join(source_path.replace('to_convert', 'converted'), 'tv', folder)
                             
                             # create the converted path if it does not exist
                             if not os.path.isdir(converted_path):
@@ -130,7 +135,7 @@ def main(arguments: dict):
                                     logger.info(f"TV file found: {file}. Attempting to transcode...")
 
                                     # parse name from file
-                                    full_source_path = f"{source_path}/{f}/{folder}/{file}"
+                                    full_source_path = os.path.join(source_path, f, folder, file)
                                     split_name = file.split('.')
 
                                     # match to series and episode number and resolution
@@ -145,11 +150,11 @@ def main(arguments: dict):
                                     
                                     # build full file name and output path
                                     mp4_filename = f"{series_name} - {season_and_episode} - {episode_title}.mp4"
-                                    output_filepath = f"{out_path}/TV/{series_name}/{mp4_filename}"
+                                    output_filepath = os.path.join(out_path, 'TV', series_name, mp4_filename)
 
                                     # create series name dir if not exists
-                                    if not os.path.isdir(f"{out_path}/TV/{series_name}"):
-                                        os.mkdir(f"{out_path}/TV/{series_name}")
+                                    if not os.path.isdir(os.path.join(out_path, 'TV', series_name)):
+                                        os.mkdir(os.path.join(out_path, 'TV', series_name))
 
                                     # get video propeerties
                                     props = get_video_properties(full_source_path)
