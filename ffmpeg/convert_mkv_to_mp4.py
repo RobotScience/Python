@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import time
 from pathlib import Path
 
 import ffmpeg
@@ -54,6 +55,16 @@ def iter_mkv_files(source_dir: Path) -> Path:
             yield path
 
 
+def format_duration(seconds: float) -> str:
+    """Format a duration as hours, minutes, and seconds."""
+    total_seconds = max(0, int(seconds))
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
+
+
 def convert_mkv_to_mp4(
         mkv_path: Path,
         output_dir: Path,
@@ -62,6 +73,12 @@ def convert_mkv_to_mp4(
     """Convert a single MKV file to MP4 using ffmpeg-python."""
     output_path = output_dir / (mkv_path.stem + ".mp4")
     audio_stream_index = find_english_audio_stream(mkv_path)
+    duration_probe = ffmpeg.probe(
+        str(mkv_path),
+        select_streams="a",
+        show_entries="format=duration",
+    )
+    duration = float(duration_probe["format"]["duration"])
 
     # Check for a matching .srt subtitle file
     srt_path = mkv_path.with_suffix(".srt")
@@ -84,7 +101,7 @@ def convert_mkv_to_mp4(
 
     try:
         input_stream = ffmpeg.input(**input_kwargs)
-        (
+        process = (
             ffmpeg.output(
                 input_stream.video,
                 input_stream[str(audio_stream_index)],
@@ -98,8 +115,47 @@ def convert_mkv_to_mp4(
                 crf=crf,
                 movflags="+faststart",
             )
-            .run(overwrite_output=True)
+            .global_args("-progress", "pipe:1", "-nostats")
+            .run_async(pipe_stdout=True, overwrite_output=True)
         )
+
+        start_time = time.monotonic()
+        for line in process.stdout:
+            progress = line.decode().strip().split("=", 1)
+            if len(progress) != 2 or progress[0] not in {
+                "out_time_ms",
+                "progress",
+            }:
+                continue
+
+            if progress[0] == "progress":
+                if progress[1] == "end":
+                    completed = 100.0
+                else:
+                    continue
+            else:
+                elapsed_seconds = int(progress[1]) / 1_000_000
+                completed = min(100.0, elapsed_seconds / duration * 100)
+
+            elapsed_wall_time = time.monotonic() - start_time
+            if completed > 0:
+                remaining = elapsed_wall_time * (100 - completed) / completed
+                remaining_text = format_duration(remaining)
+            else:
+                remaining_text = "--:--"
+            print(
+                f"\r{completed:5.1f}% | elapsed {format_duration(elapsed_wall_time)} "
+                f"| remaining {remaining_text}",
+                end="",
+                flush=True,
+            )
+
+        return_code = process.wait()
+        print()
+        if return_code:
+            raise RuntimeError(
+                f"ffmpeg failed to convert {mkv_path} (exit code {return_code})"
+            )
     except ffmpeg.Error as e:
         logger.error(f"Error converting {mkv_path}: {e.stderr.decode()}")
         raise
