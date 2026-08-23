@@ -10,8 +10,6 @@
 from __future__ import annotations
 
 import argparse
-import re
-import sys
 import time
 from pathlib import Path
 
@@ -143,15 +141,15 @@ def convert_mkv_to_mp4(
                 remaining_text = format_duration(remaining)
             else:
                 remaining_text = "--:--"
-            print(
-                f"\r{completed:5.1f}% | elapsed {format_duration(elapsed_wall_time)} "
-                f"| remaining {remaining_text}",
-                end="",
-                flush=True,
+            logger.info(
+                "Conversion progress: {:.1f}% | elapsed {} | remaining {}",
+                completed,
+                format_duration(elapsed_wall_time),
+                remaining_text,
             )
 
         return_code = process.wait()
-        print()
+        logger.info("Conversion progress complete")
         if return_code:
             raise RuntimeError(
                 f"ffmpeg failed to convert {mkv_path} (exit code {return_code})"
