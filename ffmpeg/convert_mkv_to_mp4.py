@@ -17,17 +17,94 @@ from pathlib import Path
 import ffmpeg
 from loguru import logger
 
+
+def find_english_audio_stream(mkv_path: Path) -> int:
+    """Return the first English, non-commentary audio stream's ffprobe index."""
+
+    # ensures that we are only probing for audio streams and not video or subtitle streams
+    probe = ffmpeg.probe(str(mkv_path), select_streams="a")
+    for stream in probe.get("streams", []):
+        if stream.get("codec_type") != "audio":
+            continue
+
+        tags = stream.get("tags", {})
+        language = tags.get("language", "").lower()
+        title = tags.get("title", "").lower()
+        handler_name = tags.get("handler_name", "").lower()
+        disposition = stream.get("disposition", {})
+        is_commentary = disposition.get("commentary", 0) == 1
+        is_commentary = (
+            is_commentary
+            or "commentary" in title
+            or "commentary" in handler_name
+        )
+
+        if language in {"en", "eng"} and not is_commentary:
+            return int(stream["index"])
+
+    raise ValueError(
+        f"No English, non-commentary audio stream found in {mkv_path}"
+    )
+
+
 def iter_mkv_files(source_dir: Path) -> Path:
     """Yield all .mkv files in the source directory."""
     for path in source_dir.iterdir():
         if path.is_file() and path.suffix.lower() == ".mkv":
             yield path
 
+
 def convert_mkv_to_mp4(
-    mkv_path: Path,
-    output_dir: Path,
-    preset: str = "medium",
-    crf: int = 23,
+        mkv_path: Path,
+        output_dir: Path,
+        preset: str = "medium",
+        crf: int = 23):
+    """Convert a single MKV file to MP4 using ffmpeg-python."""
+    output_path = output_dir / (mkv_path.stem + ".mp4")
+    audio_stream_index = find_english_audio_stream(mkv_path)
+
+    # Check for a matching .srt subtitle file
+    srt_path = mkv_path.with_suffix(".srt")
+    if srt_path.exists():
+        logger.info(f"Found subtitle: {srt_path}")
+        input_kwargs = {
+            "filename": str(mkv_path),
+            "s": str(srt_path),
+            "analyzeduration": "100M",
+            "probesize": "100M",
+            "fflags": "+genpts"
+        }
+    else:
+        input_kwargs = {
+            "filename": str(mkv_path),
+            "analyzeduration": "100M",
+            "probesize": "100M",
+            "fflags": "+genpts"
+        }
+
+    try:
+        input_stream = ffmpeg.input(**input_kwargs)
+        (
+            ffmpeg.output(
+                input_stream.video,
+                input_stream[str(audio_stream_index)],
+                str(output_path),
+                vcodec="libx264",
+                acodec="aac",
+                af="aresample=async=1:first_pts=0",
+                ac=2,
+                audio_bitrate="320k",
+                preset=preset,
+                crf=crf,
+                movflags="+faststart",
+            )
+            .run(overwrite_output=True)
+        )
+    except ffmpeg.Error as e:
+        logger.error(f"Error converting {mkv_path}: {e.stderr.decode()}")
+        raise
+
+    return output_path
 
 
 def main() -> None:

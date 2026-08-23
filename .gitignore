@@ -26,6 +26,7 @@ wheels/
 # IDE
 .vscode/
 .idea/
+.flake8
 *.swp
 *.swo
 *~
