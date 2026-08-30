@@ -26,8 +26,9 @@ Optional arguments:
 - `--preset`: x264 encoding preset. Defaults to `medium`.
 - `--crf`: x264 quality value. Defaults to `23`.
 
-The conversion preserves the source video resolution, re-encodes video with
-`libx264`, and re-encodes audio to stereo AAC at 320 kbps. The script selects
+The conversion preserves the source video resolution, re-encodes H.264 video
+with `libx264` or HEVC video with `libx265`, and re-encodes audio to stereo AAC
+at 320 kbps. Other source video codecs fall back to `libx264`. The script selects
 the first audio stream tagged `en` or `eng` that is not marked or named as
 commentary. Audio timestamps are resynchronized to help prevent gaps in the
 converted file.

@@ -1,0 +1,11 @@
+test-runner:
+  script:
+    - touch /test-file.txt
+    - echo "created at $(date)" > /test-file.txt
+    - cp /test-file.txt /tmp/test-file.txt
+    - ls -la >> /tmp/test-file.txt
+  artifacts:
+    paths:
+      - /tmp/test-file.txt
+  tags:
+    - jellyfin
